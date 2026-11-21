@@ -11,7 +11,8 @@ import structures.BTree;
 
 /**
  * Core discrete-time simulation engine for Nota Hospital.
- * Indexes patients and doctors in B-Trees and manages triage via a PriorityQueue.
+ * Manages patient arrivals, PriorityQueue triage, critical-state escalation,
+ * doctor shift schedules, and skill-based treatment durations.
  */
 public class SimulationEngine {
     private int currentTick = 0;
@@ -98,10 +99,117 @@ public class SimulationEngine {
         allDoctors.add(d);
     }
 
+    /**
+     * Advances the hospital simulation by exactly 1 discrete time tick.
+     */
     public void stepTime() {
         currentTick++;
+        tickEventLog.clear();
+        tickEventLog.add("=== Tick " + currentTick + " ===");
+
+        // 1. Progress active treatments and discharge finished patients
+        processActiveTreatments();
+
+        // 2. Admit all patients arriving at this tick (supports simultaneous arrivals)
+        processArrivals();
+
+        // 3. Increment wait times for queued patients and escalate to Critical (10) if overdue
+        updateWaitingPatientsAndEscalate();
+
+        // 4. Assign available on-shift doctors to the highest-priority waiting patients
+        assignDoctorsToPatients();
     }
 
+    private void processActiveTreatments() {
+        for (Doctor doc : allDoctors) {
+            if (doc.isBusy) {
+                doc.remainingTreatmentTicks--;
+                if (doc.remainingTreatmentTicks <= 0) {
+                    Patient treated = findActivePatientByKey(doc.currentPatientKey);
+                    if (treated != null) {
+                        treated.isBeingSeen = false;
+                        treated.isDischarged = true;
+                        treated.conditionLevel = 0; // Healthy upon discharge
+                        activePatients.remove(treated);
+                        dischargedPatients.add(treated);
+                        tickEventLog.add("DISCHARGED: " + treated.name + " treated by " + doc.name);
+                    }
+                    doc.isBusy = false;
+                    doc.currentPatientKey = "";
+                }
+            }
+        }
+    }
+
+    private void processArrivals() {
+        List<Patient> arrivedNow = new ArrayList<>();
+        for (Patient p : scheduledArrivals) {
+            if (p.arrivalTick <= currentTick) {
+                arrivedNow.add(p);
+                waitingQueue.offer(p);
+                tickEventLog.add("ARRIVED: " + p.name + " (Cond: " + p.conditionLevel + "/10)");
+            }
+        }
+        scheduledArrivals.removeAll(arrivedNow);
+    }
+
+    private void updateWaitingPatientsAndEscalate() {
+        // Drain and re-insert into PriorityQueue so heap ordering updates after priority changes
+        List<Patient> stillWaiting = new ArrayList<>();
+        while (!waitingQueue.isEmpty()) {
+            Patient p = waitingQueue.poll();
+            p.timeWaited++;
+
+            if (p.timeWaited >= p.criticalTimeLimit && p.conditionLevel < 10) {
+                p.conditionLevel = 10; // Escalate to critical state
+                tickEventLog.add("CRITICAL ESCALATION: " + p.name + " reached condition 10!");
+            }
+            stillWaiting.add(p);
+        }
+        waitingQueue.addAll(stillWaiting);
+    }
+
+    private void assignDoctorsToPatients() {
+        List<Doctor> availableDoctors = new ArrayList<>();
+        for (Doctor doc : allDoctors) {
+            if (!doc.isBusy && isDoctorOnShift(doc, currentTick)) {
+                availableDoctors.add(doc);
+            }
+        }
+
+        // Pair highest-skill available doctors with the most critical waiting patients first
+        availableDoctors.sort(Comparator.comparingInt((Doctor d) -> d.skillLevel).reversed());
+
+        for (Doctor doc : availableDoctors) {
+            if (waitingQueue.isEmpty()) {
+                break;
+            }
+            Patient nextPatient = waitingQueue.poll();
+            int duration = calculateTreatmentTicks(nextPatient, doc);
+
+            nextPatient.isBeingSeen = true;
+            doc.isBusy = true;
+            doc.remainingTreatmentTicks = duration;
+            doc.currentPatientKey = nextPatient.getKey();
+            activePatients.add(nextPatient);
+
+            tickEventLog.add("ASSIGNED: " + doc.name + " (Skill " + doc.skillLevel + ") -> "
+                    + nextPatient.name + " (Cond " + nextPatient.conditionLevel + ", " + duration + " ticks)");
+        }
+    }
+
+    /**
+     * Calculates treatment duration in ticks: sicker patients take longer,
+     * while higher-skill doctors finish faster (minimum 1 tick).
+     */
+    private int calculateTreatmentTicks(Patient p, Doctor d) {
+        int effectiveSkill = Math.max(1, d.skillLevel);
+        return Math.max(1, (int) Math.ceil((double) p.conditionLevel / effectiveSkill));
+    }
+
+    /**
+     * Checks whether a doctor is working at the given simulation tick (24-hour cycle).
+     */
     public boolean isDoctorOnShift(Doctor doc, int tick) {
         int hourOfDay = tick % 24;
         if (doc.shiftStart <= doc.shiftEnd) {
@@ -111,11 +219,37 @@ public class SimulationEngine {
         }
     }
 
-    public int getCurrentTick() { return currentTick; }
-    public List<Patient> getWaitingPatients() { return new ArrayList<>(waitingQueue); }
-    public List<Patient> getActivePatients() { return new ArrayList<>(activePatients); }
-    public List<Patient> getDischargedPatients() { return new ArrayList<>(dischargedPatients); }
+    private Patient findActivePatientByKey(String key) {
+        for (Patient p : activePatients) {
+            if (p.getKey().equals(key)) {
+                return p;
+            }
+        }
+        return null;
+    }
 
+    // --- Public Getters & B-Tree Lookup API for UI ---
+
+    public int getCurrentTick() {
+        return currentTick;
+    }
+
+    /** Returns waiting patients ordered by triage priority (highest condition first). */
+    public List<Patient> getWaitingPatients() {
+        List<Patient> ordered = new ArrayList<>(waitingQueue);
+        ordered.sort(waitingQueue.comparator());
+        return ordered;
+    }
+
+    public List<Patient> getActivePatients() {
+        return new ArrayList<>(activePatients);
+    }
+
+    public List<Patient> getDischargedPatients() {
+        return new ArrayList<>(dischargedPatients);
+    }
+
+    /** Returns only doctors currently on shift at currentTick. */
     public List<Doctor> getActiveDoctors() {
         List<Doctor> onShift = new ArrayList<>();
         for (Doctor d : allDoctors) {
@@ -126,8 +260,13 @@ public class SimulationEngine {
         return onShift;
     }
 
-    public List<Doctor> getAllDoctors() { return new ArrayList<>(allDoctors); }
-    public List<String> getLastTickEvents() { return new ArrayList<>(tickEventLog); }
+    public List<Doctor> getAllDoctors() {
+        return new ArrayList<>(allDoctors);
+    }
+
+    public List<String> getLastTickEvents() {
+        return new ArrayList<>(tickEventLog);
+    }
 
     public Patient lookupPatient(String name, int age, String dob) {
         return patientTree.search(new Patient(name, age, dob));
