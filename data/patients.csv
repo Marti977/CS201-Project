@@ -1,0 +1,13 @@
+name,age,dob,conditionLevel,criticalTimeLimit,arrivalTick
+John Doe,30,1996-05-12,7,5,0
+John Doe,30,1996-11-03,4,8,0
+Jane Smith,45,1981-02-20,9,2,0
+Maria Garcia,27,1999-07-14,6,4,1
+James Wilson,62,1964-03-08,8,3,1
+Aaliyah Johnson,19,2007-09-21,3,10,2
+Robert Brown,54,1972-12-02,5,7,3
+Emily Davis,34,1992-04-17,2,12,3
+Michael Taylor,71,1955-01-30,9,1,4
+Sophia Martinez,41,1985-08-09,6,5,5
+Daniel Anderson,23,2003-06-25,1,14,5
+Olivia Thomas,58,1968-10-11,7,4,7
