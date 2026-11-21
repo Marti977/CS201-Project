@@ -33,6 +33,7 @@ Each call to `stepTime()` executes four phases in order:
 ---
 
 ## 3. Team Member Contributions
-* **Marti Devanathan (`feat/sim-engine`):** Designed the initial project architecture, shared data models (`Patient`, `Doctor`), and `Makefile`; implemented `SimulationEngine` with `PriorityQueue` triage, simultaneous arrivals, critical-state (`10`) escalation timers, doctor shift enforcement, and skill-based treatment durations; wrote Report Question 1.
+* **Martin Devanathan (`feat/sim-engine`):** Designed the initial project architecture, shared data models (`Patient`, `Doctor`), and `Makefile`; implemented `SimulationEngine` with `PriorityQueue` triage, simultaneous arrivals, critical-state (`10`) escalation timers, doctor shift enforcement, and skill-based treatment durations; wrote Report Question 1.
 * **[B-Tree Teammate Name] (`feat/btree-data`):** *(Add contribution summary here)*
 * **[UI Teammate Name] (`feat/ui-docs`):** *(Add contribution summary here)*
+* **Note on Commit History:** Core simulation modules were implemented and tested locally in a continuous working session, then staged and pushed as separate commits by logical component (`feat`, `docs`, `fix`) to keep the repository history clean and reviewable.
