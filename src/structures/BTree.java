@@ -1,3 +1,5 @@
+package structures;
+
 import java.util.TreeMap;
 
 public class BTree<T extends Comparable<T>> {

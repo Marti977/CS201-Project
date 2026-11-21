@@ -1,3 +1,5 @@
+package models;
+
 public class Patient implements Comparable<Patient> {
     public String name;
     public int age;
