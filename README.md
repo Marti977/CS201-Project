@@ -32,7 +32,7 @@ The JavaFX interface (`ui.Main`) provides a four-panel live dashboard alongside 
 ---
 
 ## 2. B-Tree Minimum Degree ($t$)
-*(TODO — B-Tree Teammate: Document why $t = 3$ was chosen for the B-Tree minimum degree here.)*
+We chose a minimum degree of t = 3 because it allows each node to hold up to five records and have up to six children. Storing multiple records per node helps keep the B-tree shorter as the patient and doctor datasets grow, while the small node size makes searching within each node and understanding splits straightforward. For our project’s relatively small datasets, this provides a practical balance between tree height and the number of records examined within each node.
 
 ---
 
@@ -40,5 +40,5 @@ The JavaFX interface (`ui.Main`) provides a four-panel live dashboard alongside 
 > **Team Roster Note:** Our original third team member dropped the course during development. All remaining UI, UML, and integration deliverables were absorbed and completed by Martin Devanathan.
 
 - **Martin Devanathan (`feat/sim-engine`, `feat/ui-docs`):** Designed the initial project architecture, shared data models (`Patient`, `Doctor`), and `Makefile`; implemented `SimulationEngine` (`PriorityQueue` triage, simultaneous arrivals, critical-state escalation, doctor shift enforcement, and skill-based treatment durations); built the JavaFX graphical dashboard and B-Tree search interface (`ui.Main`); created the UML Class Diagram (`docs/uml_diagram.md`); and authored Report Question 1.
-- **[B-Tree Teammate Name] (`feat/btree-data`):** Implemented the custom generic `BTree` and `BTreeNode` structures with node splitting and composite-key search, built `DatasetLoader` and the CSV datasets (`data/patients.csv`, `data/doctors.csv`), and authored Report Question 2.
+- **Ashton (`feat/btree-data`):** Implemented the custom generic `BTree` and `BTreeNode` structures with node splitting and composite-key search, built `DatasetLoader` and the CSV datasets (`data/patients.csv`, `data/doctors.csv`), and authored Report Question 2.
 - **Note on Commit History:** Core simulation and UI modules were implemented and tested locally in focused working sessions, then staged and pushed as separate commits by logical component (`feat`, `fix`, `docs`) to keep the repository history clean and reviewable.
